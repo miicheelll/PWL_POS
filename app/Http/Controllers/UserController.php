@@ -19,7 +19,7 @@ class UserController extends Controller
         $page = (object) [
             'title' => 'Daftar user yang terdaftar dalam sistem'
         ];
-        $activeMenu = 'user'; // set menu yang sedang aktif
+        $activeMenu = 'user'; 
         $level = LevelModel::all();
         return view('user.index', ['breadcrumb' => $breadcrumb, 'page' => $page, 'level' => $level, 'activeMenu' => $activeMenu]);
     }
