@@ -21,7 +21,7 @@
                     <div class="form-group row">
                         <label class="col-1 control-label col-form-label">Filter:</label>
                         <div class="col-3">
-                            <select name="level_id" id="level_id" class="form-contr" required>
+                            <select name="level_id" id="level_id" class="form-control" required>
                                 <option value="">- Semua -</option>
                                 @foreach ($level as $item)
                                     <option value="{{ $item->level_id }}">{{ $item->level_nama }}</option>
@@ -58,9 +58,9 @@
                 $('#myModal').modal('show');
             });
         }
-        
+        var dataUser;
         $(document).ready(function () {
-            var dataUser = $('#table_user').DataTable({
+            dataUser = $('#table_user').DataTable({
                 serverSide: true,
                 ajax: {
                     "url": "{{ url('user/list') }}",
