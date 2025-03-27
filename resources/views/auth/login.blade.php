@@ -43,6 +43,11 @@
           </div> 
           <small id="error-password" class="error-text text-danger"></small> 
         </div> 
+        <div class="text-left mt-3">
+          <p class="text-muted small mb-0 d-inline">Don't have an account?</p>
+          <a href="{{ url('/register') }}" class="text-primary small">Register</a>
+        </div>
+        <br>      
         <div class="row"> 
           <div class="col-8"> 
             <div class="icheck-primary"> 
