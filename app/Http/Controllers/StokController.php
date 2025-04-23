@@ -1,7 +1,9 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\LevelModel;
+use App\Models\SupplierModel;
+use App\Models\BarangModel;
+use App\Models\StokModel;
 use App\Models\UserModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -9,42 +11,57 @@ use Illuminate\Support\Facades\Validator;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Yajra\DataTables\Facades\DataTables;
 use Barryvdh\DomPDF\Facade\Pdf;
-class UserController extends Controller
+class StokController extends Controller
 {
-    public function index (){
-
-        $activeMenu = 'user';
+    public function index() {
+        $activeMenu = 'stok';
         $breadcrumb = (object) [
-            'title' => 'Data User',
-            'list' => ['Home', 'User']
+            'title' => 'Data Stok',
+            'list' => ['Home', 'Stok']
         ];
-        $level = LevelModel::select('level_id', 'level_nama')->get();
-        return view('user.index', [
+    
+        $supplier = SupplierModel::select('supplier_id', 'supplier_nama')->get();
+        $barang = BarangModel::select('barang_id', 'barang_nama')->get();
+        $user = UserModel::select('user_id', 'username')->get();
+    
+        return view('stok.index', [
             'activeMenu' => $activeMenu,
             'breadcrumb' => $breadcrumb,
-            'level' => $level
+            'supplier' => $supplier,
+            'barang' => $barang,
+            'user' => $user
         ]);
     }
 
+    public function show_ajax($id)
+    {
+        $stok = StokModel::with('user')->find($id);
+        return view('stok.show_ajax', ['stok' => $stok]);
+    }    
+
     public function list(Request $request)
     {
-        $user = UserModel::select('user_id', 'username', 'nama', 'level_id')->with('level');
-        $level_id = $request->input('filter_level');
-        if(!empty($level_id)){
-            $user->where('level_id', $level_id);
+        $stok = StokModel::select('supplier_id', 'barang_id','user_id', 'stok_tanggal','stok_jumlah')->with('supplier','barang','user');
+        $supplier_id = $request->input('filter_supplier');
+        if(!empty($supplier_id)){
+            $stok->where('supplier_id', $supplier_id);
         }
-        return DataTables::of($user)
+        $barang_id = $request->input('filter_barang');
+        if(!empty($barang_id)){
+            $stok->where('barang_id', $barang_id);
+        }
+        return DataTables::of($stok)
             ->addIndexColumn()
-            ->addColumn('aksi', function ($user) { // menambahkan kolom aksi
-                /*$btn = '<a href="'.url('/user/' . $user->user_id).'" class="btn btn-info btn-sm">Detail</a> ';
-                $btn .= '<a href="'.url('/user/' . $user->user_id . '/edit').'"class="btn btn-warning btn-sm">Edit</a> ';
+            ->addColumn('aksi', function ($stok) { // menambahkan kolom aksi
+                /*$btn = '<a href="'.url('/stok/' . $stok->stok_id).'" class="btn btn-info btn-sm">Detail</a> ';
+                $btn .= '<a href="'.url('/stok/' . $stok->stok_id . '/edit').'"class="btn btn-warning btn-sm">Edit</a> ';
                 $btn .= '<form class="d-inline-block" method="POST" action="'.
-                url('/user/'.$user->user_id).'">'
+                url('/stok/'.$stok->stok_id).'">'
                 . csrf_field() . method_field('DELETE') .
                 '<button type="submit" class="btn btn-danger btn-sm" onclick="return confirm(\'Apakah Kita yakit menghapus data ini?\');">Hapus</button></form>';*/
-                $btn = '<button onclick="modalAction(\''.url('/user/' . $user->user_id . '/show_ajax').'\')" class="btn btn-info btn-sm">Detail</button> ';
-                $btn .= '<button onclick="modalAction(\''.url('/user/' . $user->user_id . '/edit_ajax').'\')" class="btn btn-warning btn-sm">Edit</button> ';
-                $btn .= '<button onclick="modalAction(\''.url('/user/' . $user->user_id . '/delete_ajax').'\')" class="btn btn-danger btn-sm">Hapus</button> ';
+                $btn = '<button onclick="modalAction(\''.url('/stok/' . $stok->stok_id . '/show_ajax').'\')" class="btn btn-info btn-sm">Detail</button> ';
+                $btn .= '<button onclick="modalAction(\''.url('/stok/' . $stok->stok_id . '/edit_ajax').'\')" class="btn btn-warning btn-sm">Edit</button> ';
+                $btn .= '<button onclick="modalAction(\''.url('/stok/' . $stok->stok_id . '/delete_ajax').'\')" class="btn btn-danger btn-sm">Hapus</button> ';
                 return $btn;
             })
             ->rawColumns(['aksi']) // ada teks html
@@ -53,18 +70,26 @@ class UserController extends Controller
 
     public function create_ajax()
     {
-        $level = LevelModel::select('level_id', 'level_nama')->get();
-        return view('user.create_ajax')->with('level', $level);
+        $supplier = SupplierModel::select('supplier_id', 'supplier_nama')->get();
+        $barang = BarangModel::select('barang_id', 'barang_nama')->get();
+        $user = UserModel::select('user_id', 'username')->get();
+
+        return view('stok.create_ajax', [
+            'supplier' => $supplier,
+            'barang' => $barang,
+            'user' => $user
+        ]);
     }
 
     public function store_ajax(Request $request)
     {
         if($request->ajax() || $request->wantsJson()){
             $rules = [
-                'level_id' => ['required', 'integer', 'exists:m_level,level_id'],
-                'username' => ['required', 'min:3', 'unique:m_user,user_id'],
-                'nama' => ['required', 'string', 'max:100'],
-                'password' => ['required', 'min:5']
+                'supplier_id' => ['required', 'integer', 'exists:m_supplier,supplier_id'],
+                'barang_id' => ['required', 'integer', 'exists:m_barang,barang_id'],
+                'user_id' => ['required', 'integer', 'exists:m_user,user_id'],
+                'stok_tanggal' => ['required', 'date'],
+                'stok_jumlah' => ['required', 'integer']
             ];
 
             $validator = Validator::make($request->all(), $rules);
@@ -76,7 +101,7 @@ class UserController extends Controller
                 ]);
             }
 
-            UserModel::create($request->all());
+            StokModel::create($request->all());
             return response()->json([
                 'status' => true,
                 'message' => 'Data berhasil disimpan'
@@ -87,9 +112,17 @@ class UserController extends Controller
 
     public function edit_ajax($id)
     {
-        $user = UserModel::find($id);
-        $level = LevelModel::select('level_id', 'level_nama')->get();
-        return view('user.edit_ajax', ['user' => $user, 'level' => $level]);
+        $stok = StokModel::find($id);
+        $supplier = SupplierModel::select('supplier_id', 'supplier_nama')->get();
+        $barang = BarangModel::select('barang_id', 'barang_nama')->get();
+        $user = UserModel::select('user_id', 'username')->get();
+
+        return view('stok.edit_ajax', [
+            'stok' => $stok,
+            'supplier' => $supplier,
+            'barang' => $barang,
+            'user' => $user
+        ]);
     }
 
     public function update_ajax(Request $request, $id)
@@ -97,10 +130,11 @@ class UserController extends Controller
         // cek apakah request dari ajax
         if ($request->ajax() || $request->wantsJson()) {
             $rules = [
-                'level_id' => ['required', 'integer', 'exists:m_level,level_id'],
-                'username' => ['required', 'min:3', 'unique:m_user,user_id'],
-                'nama' => ['required', 'string', 'max:100'],
-                'password' => ['required', 'min:5']
+                'supplier_id' => ['required', 'integer', 'exists:m_supplier,supplier_id'],
+                'barang_id' => ['required', 'integer', 'exists:m_barang,barang_id'],
+                'user_id' => ['required', 'integer', 'exists:m_user,user_id'],
+                'stok_tanggal' => ['required', 'date'],
+                'stok_jumlah' => ['required', 'integer']
             ];
 
             // use Illuminate\Support\Facades\Validator;
@@ -113,7 +147,7 @@ class UserController extends Controller
                 ]);
             }
 
-            $check = UserModel::find($id);
+            $check = StokModel::find($id);
             if ($check) {
                 $check->update($request->all());
                 return response()->json([
@@ -132,16 +166,16 @@ class UserController extends Controller
             
     public function confirm_ajax($id)
     {
-        $user = UserModel::find($id);
-        return view('user.confirm_ajax', ['user' => $user]);
+        $stok = StokModel::find($id);
+        return view('stok.confirm_ajax', ['stok' => $stok]);
     }
             
     public function delete_ajax(Request $request, $id)
     {
         if($request->ajax() || $request->wantsJson()){
-            $user = UserModel::find($id);
-            if($user){ // jika sudah ditemuikan
-                $user->delete(); // user di hapus
+            $stok = StokModel::find($id);
+            if($stok){ // jika sudah ditemuikan
+                $stok->delete(); // stok di hapus
                 return response()->json([
                     'status' => true,
                     'message' => 'Data berhasil dihapus'
@@ -157,7 +191,7 @@ class UserController extends Controller
     }
     public function import()
     {
-        return view('user.import');
+        return view('stok.import');
     }
 
     public function import_ajax(Request $request)
@@ -165,7 +199,7 @@ class UserController extends Controller
         if($request->ajax() || $request->wantsJson()){
             $rules = [
                 // validasi file harus xls atau xlsx, max 1MB
-                'file_user' => ['required', 'mimes:xlsx', 'max:1024']
+                'file_stok' => ['required', 'mimes:xlsx', 'max:1024']
             ];
 
             $validator = Validator::make($request->all(), $rules);
@@ -177,7 +211,7 @@ class UserController extends Controller
                 ]);
             }
 
-            $file = $request->file('file_user'); // ambil file dari request
+            $file = $request->file('file_stok'); // ambil file dari request
 
             $reader = IOFactory::createReader('Xlsx'); // load reader file excel
             $reader->setReadDataOnly(true); // hanya membaca data
@@ -191,9 +225,11 @@ class UserController extends Controller
                 foreach ($data as $baris => $value) {
                     if($baris > 1){ // baris ke 1 adalah header, maka lewati
                         $insert[] = [
-                            'level_id' => $value['A'],
-                            'username' => $value['B'],
-                            'nama' => $value['C'],
+                            'supplier_id' => $value['A'],
+                            'barang_id' => $value['B'],
+                            'user_id' => $value['C'],
+                            'stok_tanggal' => $value['D'],
+                            'stok_jumlah' => $value['E'],
                             'created_at' => now(),
                         ];
                     }
@@ -201,7 +237,7 @@ class UserController extends Controller
 
                 if(count($insert) > 0){
                     // insert data ke database, jika data sudah ada, maka diabaikan
-                    UserModel::insertOrIgnore($insert);
+                    StokModel::insertOrIgnore($insert);
                 }
 
                 return response()->json([
@@ -219,27 +255,33 @@ class UserController extends Controller
     }
     public function export_excel()
     {
-        $user = UserModel::select('level_id', 'username','nama')
-            ->orderBy('level_id')
-            ->with('level')
+        $stok = StokModel::select('supplier_id', 'barang_id','user_id', 'stok_tanggal','stok_jumlah')
+            ->orderBy('supplier_id')
+            ->orderBy('barang_id')
+            ->with('supplier', 'barang')
             ->get();
         // load library excel
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet(); // ambil sheet yang aktif
 
         $sheet->setCellValue('A1', 'No');
-        $sheet->setCellValue('B1', 'Username');
-        $sheet->setCellValue('C1', 'Nama');
-        $sheet->setCellValue('D1', 'Level Pengguna');
+        $sheet->setCellValue('B1', 'Supplier');
+        $sheet->setCellValue('C1', 'Nama Barang');
+        $sheet->setCellValue('D1', 'Nama User');
+        $sheet->setCellValue('E1', 'Tanggal');
+        $sheet->setCellValue('F1', 'Jumlah Stok');
+
         $sheet->getStyle('A1:F1')->getFont()->setBold(true); // bold header
 
         $no = 1; // nomor data dimulai dari 1
         $baris = 2; // baris data dimulai dari baris ke 2
-        foreach ($user as $key => $value) {
+        foreach ($stok as $key => $value) {
             $sheet->setCellValue('A' . $baris, $no);
-            $sheet->setCellValue('B' . $baris, $value->username);
-            $sheet->setCellValue('C' . $baris, $value->nama);
-            $sheet->setCellValue('F' . $baris, $value->level->level_nama); // ambil nama level
+            $sheet->setCellValue('B' . $baris, $value->supplier->supplier_nama);
+            $sheet->setCellValue('C' . $baris, $value->barang->barang_nama);
+            $sheet->setCellValue('D' . $baris, $value->user->username);
+            $sheet->setCellValue('E' . $baris, $value->stok_tanggal);
+            $sheet->setCellValue('F' . $baris, $value->stok_jumlah); // ambil nama barang
             $baris++;
             $no++;
         }
@@ -248,10 +290,10 @@ class UserController extends Controller
             $sheet->getColumnDimension($columnID)->setAutoSize(true); // set auto size untuk kolom
         }
 
-        $sheet->setTitle('Data User'); // set title sheet
+        $sheet->setTitle('Data Stok'); // set title sheet
 
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx'); //Membuat “penulis” file Excel dalam format .xlsx
-        $filename = 'Data User_' . date('Y-m-d H:i:s') . '.xlsx';
+        $filename = 'Data Stok_' . date('Y-m-d H:i:s') . '.xlsx';
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); // memberi tahu bahwa ini adalah file excel
         header('Content-Disposition: attachment;filename="' . $filename . '"'); //Memberi tau browser supaya file langsung di-download, bukan dibuka di browser.  
@@ -267,16 +309,16 @@ class UserController extends Controller
     }
 
     public function export_pdf(){
-        $user = UserModel::select('level_id', 'username', 'nama')
-                    ->orderBy('level_id')
-                    ->orderBy('username')
-                    ->with('level')
+        $stok = StokModel::select('supplier_id', 'barang_id','user_id', 'stok_tanggal','stok_jumlah')
+                    ->orderBy('supplier_id')
+                    ->orderBy('barang_id')
+                    ->with('supplier', 'barang')
                     ->get();
-        $pdf = Pdf::loadView('user.export_pdf', ['user' => $user]);
+        $pdf = Pdf::loadView('stok.export_pdf', ['stok' => $stok]);
         $pdf->setPaper('A4', 'portrait');
         $pdf->setOptions(['isRemoteEnabled' => true]);
         $pdf->render();
 
-        return $pdf->stream('Data User_' . date('Y-m-d H:i:s') . '.pdf');
+        return $pdf->stream('Data Stok_' . date('Y-m-d H:i:s') . '.pdf');
     }
 }
