@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\StokController;
 use App\Http\Controllers\PenjualanController;
+use App\Http\Controllers\ProfileController;
 
 Route::pattern('id', '[0-9]+'); 
 
@@ -182,5 +183,11 @@ Route::middleware(['auth'])->group(function () {
             Route::get('//export_excel', [PenjualanController::class, 'export_excel']);
             Route::get('//export_pdf', [PenjualanController::class, 'export_pdf']);
         });
+    });
+
+    Route::prefix('profile')->group(function () {
+        Route::get('/', [ProfileController::class, 'index'])->name('profile.index');
+        Route::post('/update', [ProfileController::class, 'update'])->name('profile.update');
+        Route::delete('/delete', [ProfileController::class, 'delete'])->name('profile.delete');
     });
 });

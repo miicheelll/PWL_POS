@@ -1,4 +1,14 @@
 <div class="sidebar">
+    <!-- Sidebar User Panel -->
+    <div class="image text-center mt-3">
+        <a href="#" data-toggle="modal" data-target="#modalProfilLengkap">
+            <img src="{{ Auth::user()->foto ? asset('storage/foto/' . Auth::user()->foto) : asset('images/default.png') }}"
+                class="img-circle elevation-2" alt="User Image" style="width: 70px; height: 70px; object-fit: cover;">
+        </a>
+    </div>
+    <div class="info text-center mt-2">
+        <a href="#" class="d-block" data-toggle="modal" data-target="#modalProfilLengkap">{{ Auth::user()->name }}</a>
+    </div>
   <!-- SidebarSearch Form -->
   <div class="form-inline mt-2">
       <div class="input-group" data-widget="sidebar-search">

@@ -62,6 +62,160 @@
     </div>
     <!-- ./wrapper -->
 
+    <!-- Modal Profil Lengkap -->
+    <div class="modal fade" id="modalProfilLengkap" tabindex="-1" role="dialog" aria-labelledby="modalProfilLengkapLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-md" role="document">
+    <div class="modal-content">
+        <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
+        @csrf
+
+        <div class="modal-header">
+            <h5 class="modal-title">Profil Saya</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Tutup">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <div class="modal-body text-center">
+
+            <!-- Foto Profil -->
+            <img id="fotoPreview"
+            src="{{ Auth::user()->foto ? asset('storage/foto/' . Auth::user()->foto) : asset('images/default.png') }}"
+            class="img-thumbnail rounded-circle mb-3" width="150">
+
+            <!-- Form Fields -->
+            <div class="form-group text-left">
+            <label for="nama">Nama</label>
+            <input type="text" name="nama" id="nama" class="form-control" value="{{ Auth::user()->nama }}" readonly>
+            </div>
+
+            <div class="form-group text-left">
+            <label for="username">Username</label>
+            <input type="text" name="username" id="username" class="form-control" value="{{ Auth::user()->username }}"
+                readonly>
+            </div>
+
+            <div class="form-group text-left">
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" class="form-control" placeholder="********" readonly>
+            </div>
+
+            <!-- Ganti Foto -->
+            <div class="form-group text-left">
+            <label for="foto">Ganti Foto</label>
+            <input type="file" name="foto" id="foto" class="form-control-file" onchange="previewFoto()">
+            </div>
+
+        </div>
+
+        <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+            <button type="button" class="btn btn-danger" onclick="hapusFoto()">Hapus Foto</button>
+            <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+        </form>
+    </div>
+    </div>
+    </div>
+
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- JavaScript untuk Preview Foto -->
+    <script>
+    function previewFoto() {
+    const input = document.getElementById('foto');
+    const preview = document.getElementById('fotoPreview');
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onloadend = function () {
+        preview.src = reader.result;
+    }
+
+    if (file) {
+        reader.readAsDataURL(file);
+    }
+    }
+
+    function hapusFoto() {
+    const foto = document.getElementById("fotoPreview").src;
+
+    if (foto.includes('default.png')) {
+        Swal.fire({
+        title: 'Gagal!',
+        text: 'Tidak ada foto yang dapat dihapus.',
+        icon: 'error',
+        confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    Swal.fire({
+        title: 'Apakah anda yakin untuk menghapus foto?',
+        text: 'Foto profil akan dihapus.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, hapus!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+        fetch("{{ route('profile.delete') }}", {
+            method: "DELETE",
+            headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+            Swal.fire({
+                title: 'Foto berhasil dihapus!',
+                text: 'Foto profil telah dihapus.',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                location.reload();
+            });
+            } else {
+            Swal.fire('Gagal!', 'Tidak bisa menghapus foto.', 'error');
+            }
+        }).catch(() => {
+            Swal.fire('Gagal!', 'Terjadi kesalahan jaringan.', 'error');
+        });
+        }
+    });
+    }
+    </script>
+
+    <!-- Tampilkan SweetAlert dari Session -->
+    @if (session('success'))
+    <script>
+    Swal.fire({
+    title: 'Berhasil!',
+    text: '{{ session("success") }}',
+    icon: 'success',
+    confirmButtonText: 'OK'
+    }).then(() => {
+    location.reload(false); 
+    });
+    </script>
+    @endif
+
+
+    @if (session('error'))
+    <script>
+    Swal.fire({
+    title: 'Gagal!',
+    text: '{{ session("error") }}',
+    icon: 'error',
+    confirmButtonText: 'OK'
+    });
+    </script>
+    @endif
+
+    </script>
+
     <!-- jQuery -->
     <script src="{{ asset('Adminlte/plugins/jquery/jquery.min.js') }}"></script>
     <!-- Bootstrap 4 -->
