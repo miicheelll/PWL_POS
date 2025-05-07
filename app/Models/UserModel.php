@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +19,13 @@ class UserModel extends Authenticatable implements JWTSubject
         return [];
     }
     
+    public function image(): Attribute
+    {
+        return Attribute::make(
+            get: fn($image) => asset('storage/posts/' . $image),
+        );
+    }
+
     use HasFactory;
 
     protected $table = 'm_user';
